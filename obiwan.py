@@ -61,7 +61,7 @@ def duckable(obj,template,ctx=""):
                     raise ObiwanError("%s should have child called %s"%(path,key))
                 check("%s[\"%s\"]"%(path,key),obj[key],value)
         elif isinstance(tmpl,list):
-            if not isinstance(obj,list):
+            if not isinstance(obj,(tuple,list)):
                 raise ObiwanError("%s is %s but should be a list"%(path,type(obj)))
             assert len(tmpl)==1
             for i,item in enumerate(obj):
@@ -133,20 +133,14 @@ def _runtime_checker(frame,evt,arg):
                     return_intercept = _runtime_checker
                     continue
                 arg = frame.f_locals[key]
-                if isinstance(constraint,dict):
-                    duckable(arg,constraint,"%s(%s) "%(frame.f_code.co_name,key))
-                elif not isinstance(arg,constraint):
-                    raise ObiwanError("%s(%s:%s) cannot be %s"%(frame.f_code.co_name,key,constraint,type(arg)))
+                duckable(arg,constraint,"%s(%s) "%(frame.f_code.co_name,key))
             return return_intercept
     elif evt=="return":
         frame_info = _runtime_checker.lookup[frame.f_code]
         constraint = frame_info.__annotations__["return"]
-        if isinstance(constraint,dict):
-            duckable(arg,constraint,"%s()-> "%frame.f_code.co_name)
-        elif not isinstance(arg,constraint):
-            raise ObiwanError("%s()->%s) cannot be %s"%(frame.f_code.co_name,constraint,type(arg)))
+        duckable(arg,constraint,"%s()-> "%frame.f_code.co_name)
 
-def install_runtime_check():
+def install_obiwan_runtime_check():
     if hasattr(_runtime_checker,"enabled") and _runtime_checker.enabled:
         return
     import sys
