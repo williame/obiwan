@@ -46,7 +46,13 @@ def duckable(obj,template,ctx=""):
         elif isinstance(tmpl,ObiwanCheck):
             tmpl.check(obj)
         elif isinstance(tmpl,tuple): # leaf datatype multiple-choice
-            if not isinstance(obj,tmpl):
+            for typ in tmpl:
+                try:
+                    check(path,obj,typ)
+                    break
+                except ObiwanError:
+                    pass
+            else:
                 raise ObiwanError("%s is %s but should be one of %s"%(path,type(obj),tmpl))
         elif isinstance(tmpl,dict):
             if not isinstance(obj,dict):

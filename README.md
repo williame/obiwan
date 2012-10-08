@@ -34,7 +34,7 @@ You can specify alternative constraint types using tuples:
     def example5(x: (int,float)):
         ...
         
-In fact, *number* type is just a tuple of int and float.  And *noneable* is just an alternative way of saying (...,None)
+In fact, *number* type is just a tuple of int and float.  And *noneable* is just an alternative way of saying (...,NoneType)
 
 Lists mean that the attribute must be an array where each element matches the constraint e.g.:
 
