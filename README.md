@@ -9,7 +9,9 @@ A function can look like:
 
     def example(a: int, b: float) -> number:
         return a/b
-    
+
+My ambition is that this Obiwan syntax is widely adopted and eventually Python static type checkers support it and IDEs can do auto-complete ala Typescript.
+
 To enable obiwan, you just call it:
 
     from obiwan import *; install_obiwan_runtime_check()
