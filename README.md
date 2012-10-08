@@ -1,6 +1,8 @@
 Obiwan.py
 ---------
 
+[blogpost] http://williamedwardscoder.tumblr.com/post/33185451698/obiwan-typescript-for-python
+
 Obiwan is a Python type-checker.  You place descriptive type constraints in your function declarations and obiwan can check them for you at runtime.
 
 A function can look like:
