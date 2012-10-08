@@ -14,6 +14,8 @@ To enable obiwan, you just call it:
     
 you are now running obiwan!  Runtime execution will be slower, but annotated functions will be checked for parameter correctness!
 
+All strings in your function annotations are ingored; you can place documentation in annotations without impacting obiwan.
+
 You can also describe objects and dictionary parameters that are *duckable*:
 
     def example2(obj: {"a":int, "b": float}) -> {"ret": number}:

@@ -40,7 +40,9 @@ number = (int,float) # a type that is a number
 
 def duckable(obj,template,ctx=""):        
     def check(path,obj,tmpl):
-        if isinstance(tmpl,noneable):
+        if isinstance(tmpl,str): # allow docstrings
+            pass
+        elif isinstance(tmpl,noneable):
             if obj is not None:
                 check(path,obj,tmpl.template)
         elif isinstance(tmpl,ObiwanCheck):
@@ -69,7 +71,7 @@ def duckable(obj,template,ctx=""):
         elif isinstance(tmpl,list):
             if not isinstance(obj,(tuple,list)):
                 raise ObiwanError("%s is %s but should be a list"%(path,type(obj)))
-            assert len(tmpl)==1
+            assert len(tmpl)==1, "lists must all be of the same type"
             for i,item in enumerate(obj):
                 check("%s[%s]"%(path,i),item,tmpl[0])
         else: # single type
@@ -133,8 +135,6 @@ def _runtime_checker(frame,evt,arg):
         if frame_info:
             return_intercept = None
             for key,constraint in frame_info.__annotations__.items():
-                if isinstance(constraint,str): # allow docstrings
-                    continue
                 if key=="return": # we want to track the return type too
                     return_intercept = _runtime_checker
                     continue
