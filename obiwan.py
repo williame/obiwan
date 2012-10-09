@@ -1,4 +1,4 @@
-import inspect
+import inspect, gc, types, sys, traceback
 
 class ObiwanError(Exception):
     "Thrown by Obiwan checker if a function call or object definition does not match at runtime"
@@ -9,6 +9,21 @@ class ObiwanCheck:
         "perform your custom check here; if fails, please throw a ObiwanError"
         raise NotImplementedError("subclasses of ObiwanCheck must override check()")
         
+class duck(ObiwanCheck):
+    "something that has specified attributes"
+    def __init__(self,**kwargs):
+        self.kwargs = kwargs
+    def check(self,obj,ctx):
+        for name,value in self.kwargs.items():
+            if isinstance(value,optional):
+                if not hasattr(obj,name):
+                    continue
+                value = value.template
+            if not hasattr(obj,name):
+                raise ObiwanError("%s does not have a %s"%(ctx,name))
+            duckable(getattr(obj,name),value,"%s.%s"%(ctx,name))
+
+        
 class function(ObiwanCheck):
     """something that is callable; there are two ways to use this class:
         1) arg: function, ...
@@ -16,6 +31,13 @@ class function(ObiwanCheck):
         2) arg: function(int,float,...)
         the signature is checked; all functions passed must have this type signature
     """
+    @classmethod
+    def is_function(cls,obj):
+        return hasattr(obj,"__call__")
+    @classmethod
+    def check_is_function(cls,obj,ctx):
+        if not cls.is_function(obj):
+            raise ObiwanError("%s is %s, not a function"%(ctx,type(obj)))
     def __init__(self,*args):
         self.ellipsis = args.count(Ellipsis)
         if self.ellipsis:
@@ -25,9 +47,11 @@ class function(ObiwanCheck):
         else:
             self.args = args
     def check(self,obj,ctx):
-        if not hasattr(obj,"__call__"):
-            raise ObiwanError("%s is not callable"%ctx)
-        args = inspect.getfullargspec(obj)
+        self.check_is_function(obj,ctx)
+        try:
+            args = inspect.getfullargspec(obj)
+        except TypeError:
+            raise ObiwanError("%s is not a Python function"%ctx)
         if not args.annotations:
             raise ObiwanError("%s is not annotated"%ctx)
         if len(args.args) < len(self.args):
@@ -84,13 +108,18 @@ def sametype(expect,got,ctx):
 
 def duckable(obj,template,ctx=""):        
     if isinstance(template,str): # allow docstrings
-        pass
+        return
+    if isinstance(template,optional):
+        if obj is None:
+            return
+        template = template.template
     elif isinstance(template,noneable):
         if obj is not None:
             duckable(obj,template.template,ctx)
+    elif template is any:
+        pass
     elif template is function:
-        if not hasattr(obj,"__call__"):
-            raise ObiwanError("%s is not callable"%ctx)
+        function.check_is_function(obj,ctx)
     elif isinstance(template,ObiwanCheck):
         template.check(obj,ctx)
     elif isinstance(template,set): # leaf datatype multiple-choice
@@ -104,7 +133,7 @@ def duckable(obj,template,ctx=""):
             raise ObiwanError("%s is %s but should be one of %s"%(ctx,type(obj),template))
     elif isinstance(template,dict):
         if not isinstance(obj,dict):
-            raise ObiwanError("%s is %s but should be an object"%(ctx,type(obj)))
+            raise ObiwanError("%s is %s but should be a dict"%(ctx,type(obj)))
         for key,value in template.items():
             if isinstance(key,optional):
                 key = key.key
@@ -134,9 +163,14 @@ def duckable(obj,template,ctx=""):
             duckable(got,expect,"%s[%d]"%(ctx,i))
         if len(template) != len(obj):
             raise ObiwanError("%s is %s but should be packed %s"%(ctx,type(obj),template))
+    elif template is duck:
+        raise ObiwanError("%s you must instansiate a duck and describe its expected attributes"%ctx)
     else: # single type
-        if not isinstance(obj,template):
-            raise ObiwanError("%s is %s but should be %s"%(ctx,type(obj),template))
+        try:
+            if not isinstance(obj,template):
+                raise ObiwanError("%s is %s but should be %s"%(ctx,type(obj),template))
+        except TypeError:
+            raise ObiwanError("%s template %s is not a valid type template"%(ctx,template))
     
 def is_duckable(obj,template,ctx=""):
     try:
@@ -176,8 +210,6 @@ class json:
     def loads(cls,*args,**kwargs):
         return cls._load(_json.loads,*args,**kwargs)
 
-import gc, types
-
 def _runtime_checker(frame,evt,arg):
     if evt=="call":
         # we cache those we've looked up
@@ -204,12 +236,15 @@ def _runtime_checker(frame,evt,arg):
                     return_intercept = _runtime_checker
                     continue
                 arg = frame.f_locals[key]
-                duckable(arg,constraint,"%s(%s) "%(frame.f_code.co_name,key))
+                duckable(arg,constraint,"%s(%s)"%(frame.f_code.co_name,key))
             return return_intercept
     elif evt=="return":
+        if arg is None:
+            #FIXME we can't handle exception propagation (yet)
+            return
         frame_info = _runtime_checker.lookup[frame.f_code]
         constraint = frame_info.__annotations__["return"]
-        duckable(arg,constraint,"%s()-> "%frame.f_code.co_name)
+        duckable(arg,constraint,"%s()->"%frame.f_code.co_name)
 
 def install_obiwan_runtime_check():
     if hasattr(_runtime_checker,"enabled") and _runtime_checker.enabled:
