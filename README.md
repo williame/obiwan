@@ -116,17 +116,6 @@ You can also specify that a function should support further arguments using elli
         
 This will ensure that all callbacks have at least two parameters, the first being an int.
 
-# a special note on checking return types
-
-In general, you can specify this as a function annotation after the arguments using `->` syntax:
-
-    def example13() -> int:
-        ...
-        
-The checker will ensure that this function returns an int.
-
-Or `None`.  Unfortunately, at the current time, the checker cannot stop you from returning nothing from a function and does not catch this error.  This is being given special attention and we hope this will be remedied soon.
-
 # writing your own custom checkers
         
 You can provide your own complex custom constraint checkers by subclassing the ObiwanCheck class; look at obiwan.StringCheck for inspiration.

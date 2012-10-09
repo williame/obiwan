@@ -1,4 +1,4 @@
-import inspect, gc, types, sys, traceback
+import inspect, gc, types, sys, traceback, opcode
 
 class ObiwanError(Exception):
     "Thrown by Obiwan checker if a function call or object definition does not match at runtime"
@@ -239,12 +239,12 @@ def _runtime_checker(frame,evt,arg):
                 duckable(arg,constraint,"%s(%s)"%(frame.f_code.co_name,key))
             return return_intercept
     elif evt=="return":
-        if arg is None:
-            #FIXME we can't handle exception propagation (yet)
-            return
-        frame_info = _runtime_checker.lookup[frame.f_code]
-        constraint = frame_info.__annotations__["return"]
-        duckable(arg,constraint,"%s()->"%frame.f_code.co_name)
+        if (arg is not None) or (opcode.opname[frame.f_code.co_code[frame.f_lasti]] in ('RETURN_VALUE', 'YIELD_VALUE')):
+            frame_info = _runtime_checker.lookup[frame.f_code]
+            constraint = frame_info.__annotations__["return"]
+            duckable(arg,constraint,"%s()->"%frame.f_code.co_name)
+        # else we are in an exception! Super messy horrid hack code
+        # http://stackoverflow.com/a/12800909/15721
 
 def install_obiwan_runtime_check():
     if hasattr(_runtime_checker,"enabled") and _runtime_checker.enabled:
