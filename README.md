@@ -50,18 +50,27 @@ You can specify alternative constraint types using sets:
     def example5(x: {int,float}):
         ...
         
-In fact, *number* type is just a set of int and float.  And *noneable* is just a way of saying {...,None}
+In fact, *number* type is just a set of int and float.  And *noneable* is just a way of saying `{...,None}`
 
 Lists mean that the attribute must be an array where each element matches the constraint e.g.:
 
     def example6(numbers: [int]):
+        ...
+        
+It aids readability to use variables to hold definitions e.g.:
+
+    api_add_user = {
+        "name": str,
+        "admin": bool,
+    }
+    def add_user(user: api_add_user) -> int:
         ...
 
 # validating JSON
         
 Utility functions to load and dump JSON are provided.  These support a new *template* parameter and validate the input/output matches the constraint e.g.:
 
-    json.loads(tainted,template=[{"person":....}])
+    json.loads(tainted,template=[api_add_user])
     
 # if it quacks like a duck...
 
@@ -71,29 +80,38 @@ In Python 3 everything is an object, even `int` and `None`.  So you can't generi
         ...
         
 This means that `a` must be something with a name attribute of type string, and a function attribute called get_name.
+
+You can of course use classes to:
+
+    class Person:
+       def get_name(self):
+          ...
+
+    def example8(person: Person):
+        ...        
         
 # validating callbacks
         
 You can say that a parameter is callable using function:
 
-    def example8(callback: function):
+    def example9(callback: function):
         ...
         
 If you want, you can describe the parameters that the function should take:
 
-    def example9(callback: function(int,str)):
+    def example10(callback: function(int,str)):
         ...
         
 However, all the functions passed to example8 must now be properly annotated with a matching annotation.
 
 The special type any can be used if you do not want to check the type:
 
-    def example10(callback: function(int,any,number)):
+    def example11(callback: function(int,any,number)):
         ...
         
 You can also specify that a function should support further arguments using ellipsis:
 
-    def example11(callback: function(int,any,...)):
+    def example12(callback: function(int,any,...)):
         ...
         
 This will ensure that all callbacks have at least two parameters, the first being an int.
@@ -102,7 +120,7 @@ This will ensure that all callbacks have at least two parameters, the first bein
 
 In general, you can specify this as a function annotation after the arguments using `->` syntax:
 
-    def example12() -> int:
+    def example13() -> int:
         ...
         
 The checker will ensure that this function returns an int.
