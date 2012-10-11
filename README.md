@@ -35,12 +35,12 @@ You can also describe dictionary parameters and what their expected attributes a
     def example2(obj: {"a":int, "b": float}) -> {"ret": number}:
         return {"ret": a/b}
         
-Duckable checking can support the checking of *optional* and *noneable* attributes:
+Checking can support the checking of *optional* and *noneable* attributes:
 
     def example3(obj: {"a":int, optional("b"): float}):
         ...
         
-Duckable checks can contain duckable attributes themselves too:
+Checks can contain dictionary and other attributes too:
 
     def example4(person: {"name":str, "phone": {"type":str, "number":str}}):
         ...
@@ -57,7 +57,20 @@ Lists mean that the attribute must be an array where each element matches the co
     def example6(numbers: [int]):
         ...
         
+Tuples must map to lists or tuples (no destructive iterators!) with the appropriate types in each slot:
+
+    def nearest_point_on_line(line:((int,int),(int,int)),pt:(int,int)) -> (int,int):
+    
+Within tuples you can use `any` to indicate that a type needs not be checked, and you can use ellipsis as the last element in the type-defintion tuple to indicate that additional parameters are allowed:
+
+    def decode_data(data: str) -> (str,any,int,...):
+        
 It aids readability to use variables to hold definitions e.g.:
+
+    Point = (int,int)
+    def nearest_point_on_line(line:(Point,Point),pt:Point) -> Point:
+
+and:
 
     api_add_user = {
         "name": str,
@@ -67,7 +80,7 @@ It aids readability to use variables to hold definitions e.g.:
         ...
 
 # validating JSON
-        
+        fix
 Utility functions to load and dump JSON are provided.  These support a new *template* parameter and validate the input/output matches the constraint e.g.:
 
     json.loads(tainted,template=[api_add_user])
