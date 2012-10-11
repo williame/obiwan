@@ -80,7 +80,7 @@ and:
         ...
 
 # validating JSON
-        fix
+
 Utility functions to load and dump JSON are provided.  These support a new *template* parameter and validate the input/output matches the constraint e.g.:
 
     json.loads(tainted,template=[api_add_user])
