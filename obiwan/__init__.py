@@ -75,10 +75,10 @@ class StringCheck(ObiwanCheck):
     def check(self,s,ctx):
         if not isinstance(s,str):
             raise ObiwanError("%s must be a string"%ctx)
-        if len(s) < minlen:
-            raise ObiwanError("%s is %d long, but must be more than %d"%(ctx,len(s),minlen))
-        if len(s) > maxlen:
-            raise ObiwanError("%s is %d long, but must be less than %d"%(ctx,len(s),maxlen))
+        if len(s) < self.minlen:
+            raise ObiwanError("%s is %d long, but must be more than %d"%(ctx,len(s),self.minlen))
+        if len(s) > self.maxlen:
+            raise ObiwanError("%s is %d long, but must be less than %d"%(ctx,len(s),self.maxlen))
 
 class DecimalCheck(ObiwanCheck):
     "an example check that ensures values are string representations of decimal numbers"
