@@ -8,10 +8,16 @@ class TestNoneable(unittest.TestCase):
         template = {
             'person': [{
                 'id': int,
-                obiwan.noneable('name'): str
+                obiwan.noneable('name'): str,
+                obiwan.optional('age'): int
             }]
         }
 
-        test = {'person': [{'id': 1, 'name': None}]}
+        tests = [
+            {'person': [{'id': 1, 'name': None}]},
+            {'person': [{'id': 1, 'name': None, 'age': 14}]},
+            {'person': [{'id': 1, 'name': "Adam"}]}
+        ]
 
-        obiwan.duckable(test, template)
+        for test in tests:
+            obiwan.duckable(test, template)

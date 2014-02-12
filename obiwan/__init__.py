@@ -159,7 +159,8 @@ def duckable(obj, template, ctx=""):
                 if key not in obj:
                     continue
             elif isinstance(key, noneable):
-                if obj[key.template] is None:
+                key = key.template
+                if obj[key] is None:
                     continue
             elif key not in obj:
                 raise ObiwanError("%s should have child called %s" % (ctx, key))
