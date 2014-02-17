@@ -246,6 +246,19 @@ using ellipsis:
 This will ensure that all callbacks have at least two parameters, the
 first being an int.
 
+using lambdas as checkers
+=========================
+
+You can use lambdas as checkers; they should return a boolean condition
+e.g.
+
+::
+
+    template = {
+        'month': lambda x: x in ["jan","feb","mar",...],
+        ...
+    }
+
 writing your own custom checkers
 ================================
 
