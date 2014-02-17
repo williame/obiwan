@@ -115,7 +115,14 @@ You can of course use classes to:
           ...
 
     def example8(person: Person):
-        ...        
+        ...
+        
+*duck* instances can *extend* other duck instances using positional parameters:
+
+    api_base = duck(user_id=int)
+    api_change_name = duck(api_base, name=str)
+    def change_name(user: api_change_name):
+        ...
         
 # validating callbacks
         

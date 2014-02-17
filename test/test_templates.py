@@ -2,7 +2,7 @@ import obiwan
 import unittest
 
 
-class TestNoneable(unittest.TestCase):
+class Tests(unittest.TestCase):
 
     def test_dict(self):
         template = {
@@ -53,10 +53,24 @@ class TestNoneable(unittest.TestCase):
             obiwan.options: [obiwan.strict, obiwan.subtype(parent)],
             'x': int,
         }
-        
+
         obiwan.duckable({'id': 1, 'x': 2}, template)
         self.assertRaises(obiwan.ObiwanError, obiwan.duckable, {'id': 1}, template)        
-        self.assertRaises(obiwan.ObiwanError, obiwan.duckable, {'id': 1, 'x': 2, 'z': 3}, template)        
+        self.assertRaises(obiwan.ObiwanError, obiwan.duckable, {'id': 1, 'x': 2, 'z': 3}, template) 
+
+
+    def test_duck_extends(self):
+        base = obiwan.duck(id=int)
+        parent = obiwan.duck(base)
+        template = obiwan.duck(parent,x=int)
+        
+        class Obj:
+            def __init__(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+        
+        template.check(Obj(id=1, x=2), 1)
+        self.assertRaises(obiwan.ObiwanError, template.check, Obj(id=1), 2)
 
 
     def test_bad(self):

@@ -1,4 +1,7 @@
+.*
 *.pyc
 *.
 *~
 __pycache__
+/dist/
+/obiwan.egg-info/

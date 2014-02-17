@@ -18,11 +18,19 @@ class ObiwanCheck:
 
 class duck(ObiwanCheck):
     "something that has specified attributes"
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+    def __init__(self, *extends, **attributes):
+        duckable(extends, [lambda obj: isinstance(obj, duck)], "duckable template extends")
+        self.extends = extends
+        self.attributes = attributes
 
-    def check(self, obj, ctx):
-        for name, value in self.kwargs.items():
+    def check(self, obj, ctx, checked=None):
+        if checked is None and self.extends:
+            checked = set()
+        for name, value in self.attributes.items():
+            if checked is not None:
+                if name in checked:
+                    continue
+                checked.add(name)
             if isinstance(value, optional):
                 if not hasattr(obj, name):
                     continue
@@ -30,6 +38,8 @@ class duck(ObiwanCheck):
             if not hasattr(obj, name):
                 raise ObiwanError("%s does not have a %s" % (ctx, name))
             duckable(getattr(obj, name), value, "%s.%s" % (ctx, name))
+        for parent in self.extends:
+            parent.check(obj, ctx, checked)
 
 
 class function(ObiwanCheck):
@@ -116,10 +126,8 @@ class noneable:
 number = {int, float}  # a type that is a number
 
 
-class _incomparable: pass
-        
-options = _incomparable() # marker for dict templates e.g. { options: [strict]
-strict = _incomparable() # attribute for dict template options
+options = object() # marker for dict templates e.g. { options: [strict]
+strict = object() # attribute for dict template options
 
 class subtype:
     def __init__(self, *types):
@@ -136,7 +144,7 @@ class subtype:
                 else:
                     template[key] = value
         return template
-        
+
 
 def sametype(expect, got, ctx):
     "raises an ObiwanError if the type declarations a and b are incompatible"
