@@ -116,6 +116,28 @@ class noneable:
 number = {int, float}  # a type that is a number
 
 
+class _incomparable: pass
+        
+options = _incomparable() # marker for dict templates e.g. { options: [strict]
+strict = _incomparable() # attribute for dict template options
+
+class subtype:
+    def __init__(self, *types):
+        duckable(types, [dict], "subtype constructor")
+        self.types = types
+    def template(self):
+        template = {}
+        for parent in self.types:
+            for key, value in parent.items():
+                if key is options:
+                    for opt in value:
+                        if isinstance(opt, subtype):
+                            template.update(opt.template())
+                else:
+                    template[key] = value
+        return template
+        
+
 def sametype(expect, got, ctx):
     "raises an ObiwanError if the type declarations a and b are incompatible"
     if expect == got:
@@ -126,75 +148,101 @@ def sametype(expect, got, ctx):
 
 
 def duckable(obj, template, ctx=""):
-    if isinstance(template, str):  # allow docstrings
-        return
-    if isinstance(template, optional):
-        if obj is None:
+    try:
+        if isinstance(template, str):  # allow docstrings
             return
-        template = template.template
-    elif isinstance(template, noneable):
-        if obj is not None:
-            duckable(obj, template.template, ctx)
-    elif template is any:
-        pass
-    elif template is function:
-        function.check_is_function(obj, ctx)
-    elif isinstance(template, ObiwanCheck):
-        template.check(obj, ctx)
-    elif isinstance(template, set):  # leaf datatype multiple-choice
-        for typ in template:
-            try:
-                duckable(obj, typ, ctx)
-                break
-            except ObiwanError:
-                pass
-        else:
-            raise ObiwanError("%s is %s but should be one of %s" % (ctx, type(obj), template))
-    elif isinstance(template, dict):
-        if not isinstance(obj, dict):
-            raise ObiwanError("%s is %s but should be a dict" % (ctx, type(obj)))
-        for key, value in template.items():
-            if isinstance(key, optional):
-                key = key.key
-                if key not in obj:
-                    continue
-            elif isinstance(key, noneable):
-                key = key.template
-                if obj[key] is None:
-                    continue
-            elif key not in obj:
-                raise ObiwanError("%s should have child called %s" % (ctx, key))
-            duckable(obj[key], value, "%s[\"%s\"]" % (ctx, key))
-    elif isinstance(template, list):
-        if not isinstance(obj, (tuple, list)):
-            raise ObiwanError("%s is %s but should be a list" % (ctx, type(obj)))
-        assert len(template) == 1, "lists must all be of the same type"
-        template = template[0]
-        for i, item in enumerate(obj):
-            duckable(item, template, "%s[%s]" % (ctx, i))
-    elif isinstance(template, tuple):
-        if not isinstance(obj, (tuple, list)):
-            raise ObiwanError("%s is %s but should be packed %s" % (ctx, type(obj), template))
-        for i, expect in enumerate(template):
-            if expect is any:
-                continue
-            if expect is Ellipsis:
+        if isinstance(template, optional):
+            if obj is None:
                 return
-            if i >= len(obj):
-                raise ObiwanError("%s[%d] %s but should be packed %s but is omitted" % (ctx, i, expect))
-            got = obj[i]
-            duckable(got, expect, "%s[%d]" % (ctx, i))
-        if len(template) != len(obj):
-            raise ObiwanError("%s is %s but should be packed %s" % (ctx, type(obj), template))
-    elif template is duck:
-        raise ObiwanError("%s you must instansiate a duck and describe its expected attributes" % ctx)
-    else:  # single type
-        try:
-            if not isinstance(obj, template):
-                raise ObiwanError("%s is %s but should be %s" % (ctx, type(obj), template))
-        except TypeError:
-            raise ObiwanError("%s template %s is not a valid type template" % (ctx, template))
-
+            template = template.template
+        elif isinstance(template, noneable):
+            if obj is not None:
+                duckable(obj, template.template, ctx)
+        elif template is any:
+            pass
+        elif template is function:
+            function.check_is_function(obj, ctx)
+        elif isinstance(template, ObiwanCheck):
+            template.check(obj, ctx)
+        elif isinstance(template, set):  # leaf datatype multiple-choice
+            for typ in template:
+                try:
+                    duckable(obj, typ, ctx)
+                    break
+                except ObiwanError:
+                    pass
+            else:
+                raise ObiwanError("%s is %s but should be one of %s" % (ctx, type(obj), template))
+        elif isinstance(template, dict):
+            if not isinstance(obj, dict):
+                raise ObiwanError("%s is %s but should be a dict" % (ctx, type(obj)))
+            if options in template:
+                is_strict = False
+                for opt in template[options]:
+                    if opt is strict:
+                        if is_strict:
+                            raise ObiwanError("%s template specifies strict option twice" % ctx)
+                        is_strict = True
+                    elif isinstance(opt, subtype):
+                        tmpl = opt.template()
+                        tmpl.update(template)
+                        template = tmpl
+                    else:
+                        raise ObiwanError("%s unsupported template option %s: %s" % (ctx, type(opt), opt))
+                if is_strict:
+                    for key in obj:
+                        if not key in template:
+                            raise ObiwanError("%s should not have a child called %s" % (ctx, key))
+            for key, value in template.items():
+                if key is options:
+                    continue
+                elif isinstance(key, optional):
+                    key = key.key
+                    if key not in obj:
+                        continue
+                elif isinstance(key, noneable):
+                    key = key.template
+                    if obj[key] is None:
+                        continue
+                elif key not in obj:
+                    raise ObiwanError("%s should have child called %s" % (ctx, key))
+                duckable(obj[key], value, "%s[\"%s\"]" % (ctx, key))
+        elif isinstance(template, list):
+            if not isinstance(obj, (tuple, list)):
+                raise ObiwanError("%s is %s but should be a list" % (ctx, type(obj)))
+            assert len(template) == 1, "lists must all be of the same type"
+            template = template[0]
+            for i, item in enumerate(obj):
+                duckable(item, template, "%s[%s]" % (ctx, i))
+        elif isinstance(template, tuple):
+            if not isinstance(obj, (tuple, list)):
+                raise ObiwanError("%s is %s but should be packed %s" % (ctx, type(obj), template))
+            for i, expect in enumerate(template):
+                if expect is any:
+                    continue
+                if expect is Ellipsis:
+                    return
+                if i >= len(obj):
+                    raise ObiwanError("%s[%d] %s but should be packed %s but is omitted" % (ctx, i, expect))
+                got = obj[i]
+                duckable(got, expect, "%s[%d]" % (ctx, i))
+            if len(template) != len(obj):
+                raise ObiwanError("%s is %s but should be packed %s" % (ctx, type(obj), template))
+        elif template is duck:
+            raise ObiwanError("%s you must instansiate a duck and describe its expected attributes" % ctx)
+        elif hasattr(template, "__name__") and template.__name__ == "<lambda>":
+            if not template(obj):
+                raise ObiwanError("%s failed lambda check" % ctx)
+        else:  # single type
+            try:
+                if not isinstance(obj, template):
+                    raise ObiwanError("%s is %s but should be %s" % (ctx, type(obj), template))
+            except TypeError:
+                raise ObiwanError("%s template %s is not a valid type template" % (ctx, template))
+    except ObiwanError:
+        raise
+    except Exception as e:
+        raise ObiwanError("%s internal error: %s" % (ctx, e))
 
 def is_duckable(obj, template, ctx=""):
     try:

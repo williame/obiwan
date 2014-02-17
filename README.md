@@ -78,6 +78,20 @@ and:
     }
     def add_user(user: api_add_user) -> int:
         ...
+        
+Dict templates can have a special *options* key which is a list of options.  Options include *strict* and *subtype*:
+
+    api_base = {
+        "user_id": int,
+    }
+    api_set_name = {
+        options: [strict, subtype(api_base)],
+        "name": str,
+    }
+    
+*Strict* will complain if the dictionary being validated contains any keys *not* in the template dictionary, and *subtype* will combine parameters specified in other dictionary templates with this template.  In this example, dictionaries validated against `api_set_name` must have both user_id and name specified, and no other keys.
+
+You can specify multiple parent templates in the subtype arguments, and have multiple subtype options, and nest template inheritence arbitrarily deep.
 
 # validating JSON
 
