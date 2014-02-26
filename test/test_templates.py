@@ -36,9 +36,11 @@ class Tests(unittest.TestCase):
         template = {
             obiwan.options: [obiwan.strict],
             'id': int,
+            obiwan.optional('opt'): int,
         }
         
         obiwan.duckable({'id': 1}, template)
+        obiwan.duckable({'id': 1, 'opt': 2}, template)
         self.assertRaises(obiwan.ObiwanError, obiwan.duckable, {'id': 1, 'x': 2}, template)
         
         
@@ -48,6 +50,7 @@ class Tests(unittest.TestCase):
         }
         parent = {
             obiwan.options: [obiwan.subtype(base)],
+            obiwan.optional('y'): int,
         }
         template = {
             obiwan.options: [obiwan.strict, obiwan.subtype(parent)],
@@ -55,8 +58,9 @@ class Tests(unittest.TestCase):
         }
 
         obiwan.duckable({'id': 1, 'x': 2}, template)
+        obiwan.duckable({'id': 1, 'x': 2, 'y': 3}, template)
         self.assertRaises(obiwan.ObiwanError, obiwan.duckable, {'id': 1}, template)        
-        self.assertRaises(obiwan.ObiwanError, obiwan.duckable, {'id': 1, 'x': 2, 'z': 3}, template) 
+        self.assertRaises(obiwan.ObiwanError, obiwan.duckable, {'id': 1, 'x': 2, 'z': 3}, template)
 
 
     def test_duck_extends(self):

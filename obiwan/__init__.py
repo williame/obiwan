@@ -116,6 +116,10 @@ class DecimalCheck(ObiwanCheck):
 class optional:
     def __init__(self, key):
         self.key = key
+    def __eq__(self, other):
+        return isinstance(other, optional) and other.key == self.key
+    def __hash__(self):
+        return hash(self.key)
 
 
 class noneable:
@@ -199,7 +203,7 @@ def duckable(obj, template, ctx=""):
                         raise ObiwanError("%s unsupported template option %s: %s" % (ctx, type(opt), opt))
                 if is_strict:
                     for key in obj:
-                        if not key in template:
+                        if not key in template and not optional(key) in template:
                             raise ObiwanError("%s should not have a child called %s" % (ctx, key))
             for key, value in template.items():
                 if key is options:
