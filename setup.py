@@ -6,5 +6,6 @@ setup(name="obiwan",
     author="William Edwards",
     author_email="willvarfar@gmail.com",
     url="https://github.com/williame/obiwan",
+    long_description=open("README.rst").read(),
     packages=["obiwan"])
 
