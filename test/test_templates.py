@@ -97,3 +97,12 @@ class Tests(unittest.TestCase):
         for test in tests:
             with self.assertRaises(obiwan.ObiwanError, msg=test):
                 obiwan.duckable(test, template)
+
+
+    def test_dict_of_types(self):
+        obiwan.duckable({"a": 1, "b": 2}, {str: int})
+        obiwan.duckable({"a": 1, "b": 2}, {"a": int, str: int})
+        self.assertRaises(obiwan.ObiwanError, obiwan.duckable,
+            {"a": 1, "b": None}, {str: int})
+        self.assertRaises(obiwan.ObiwanError, obiwan.duckable,
+            {"a": 1, 2: 2}, {str: int})

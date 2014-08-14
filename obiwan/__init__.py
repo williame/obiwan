@@ -216,9 +216,14 @@ def duckable(obj, template, ctx=""):
                     key = key.template
                     if obj[key] is None:
                         continue
-                elif key not in obj:
-                    raise ObiwanError("%s should have child called %s" % (ctx, key))
-                duckable(obj[key], value, "%s[\"%s\"]" % (ctx, key))
+                elif isinstance(key, str):
+                    if key not in obj:
+                        raise ObiwanError("%s should have child called %s" % (ctx, key))
+                    duckable(obj[key], value, "%s[\"%s\"]" % (ctx, key))
+                else: # ensure that *all* keys and values are of right type in dict
+                    for k, v in obj.items():
+                        duckable(k, key, "key %s[%s]" % (ctx, k))
+                        duckable(v, value, "key %s[\"%s\"]" % (ctx, k))
         elif isinstance(template, list):
             if not isinstance(obj, (tuple, list)):
                 raise ObiwanError("%s is %s but should be a list" % (ctx, type(obj)))

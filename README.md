@@ -45,16 +45,21 @@ Checks can contain dictionary and other attributes too:
     def example4(person: {"name":str, "phone": {"type":str, "number":str}}):
         ...
         
+Dictionaries can be checked for key and value *types*, as well as by key name.  E.g. to ensure that a function returns only dictionaries mapping strings to integers:
+
+    def example5() -> {str: int}:
+        ...
+        
 You can specify alternative constraint types using sets:
 
-    def example5(x: {int,float}):
+    def example6(x: {int,float}):
         ...
         
 In fact, *number* type is just a set of int and float.  And *noneable* is just a way of saying `{...,None}`
 
 Lists mean that the attribute must be an array where each element matches the constraint e.g.:
 
-    def example6(numbers: [int]):
+    def example7(numbers: [int]):
         ...
         
 Tuples must map to lists or tuples (no destructive iterators!) with the appropriate types in each slot:
@@ -97,7 +102,9 @@ You can specify multiple parent templates in the subtype arguments, and have mul
 
 Utility functions to load and dump JSON are provided.  These support a new *template* parameter and validate the input/output matches the constraint e.g.:
 
-    json.loads(tainted,template=[api_add_user])
+    json.loads(tainted, template=[api_add_user])
+    
+    json.loads(tainted, template={"type": str, "data": { ....
     
 # if it quacks like a duck...
 
