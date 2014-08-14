@@ -73,11 +73,21 @@ Checks can contain dictionary and other attributes too:
         ...
         
 
+Dictionaries can be checked for key and value *types*, as well as by key
+name. E.g. to ensure that a function returns only dictionaries mapping
+strings to integers:
+
+::
+
+    def example5() -> {str: int}:
+        ...
+        
+
 You can specify alternative constraint types using sets:
 
 ::
 
-    def example5(x: {int,float}):
+    def example6(x: {int,float}):
         ...
         
 
@@ -89,7 +99,7 @@ matches the constraint e.g.:
 
 ::
 
-    def example6(numbers: [int]):
+    def example7(numbers: [int]):
         ...
         
 
@@ -160,7 +170,9 @@ constraint e.g.:
 
 ::
 
-    json.loads(tainted,template=[api_add_user])
+    json.loads(tainted, template=[api_add_user])
+
+    json.loads(tainted, template={"type": str, "data": { ....
 
 if it quacks like a duck...
 ===========================
@@ -173,7 +185,7 @@ arguments to define:
 
 ::
 
-    def example7(a: duck(name=str,get_name=function)):
+    def example8(a: duck(name=str,get_name=function)):
         ...
         
 
@@ -188,7 +200,7 @@ You can of course use classes to:
        def get_name(self):
           ...
 
-    def example8(person: Person):
+    def example9(person: Person):
         ...
         
 
@@ -210,7 +222,7 @@ You can say that a parameter is callable using function:
 
 ::
 
-    def example9(callback: function):
+    def example10(callback: function):
         ...
         
 
@@ -219,7 +231,7 @@ take:
 
 ::
 
-    def example10(callback: function(int,str)):
+    def example11(callback: function(int,str)):
         ...
         
 
@@ -230,7 +242,7 @@ The special type any can be used if you do not want to check the type:
 
 ::
 
-    def example11(callback: function(int,any,number)):
+    def example12(callback: function(int,any,number)):
         ...
         
 
@@ -239,7 +251,7 @@ using ellipsis:
 
 ::
 
-    def example12(callback: function(int,any,...)):
+    def example13(callback: function(int,any,...)):
         ...
         
 

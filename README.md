@@ -110,7 +110,7 @@ Utility functions to load and dump JSON are provided.  These support a new *temp
 
 In Python 3 everything is an object, even `int` and `None`.  So you can't generically say that an argument or attribute must be an *object*.  You have to say what its attributes should be.  This follows the same style as validating dictionaries, but uses the *duck* type and keyword arguments to define:
 
-    def example7(a: duck(name=str,get_name=function)):
+    def example8(a: duck(name=str,get_name=function)):
         ...
         
 This means that `a` must be something with a name attribute of type string, and a function attribute called get_name.
@@ -121,7 +121,7 @@ You can of course use classes to:
        def get_name(self):
           ...
 
-    def example8(person: Person):
+    def example9(person: Person):
         ...
         
 *duck* instances can *extend* other duck instances using positional parameters:
@@ -135,24 +135,24 @@ You can of course use classes to:
         
 You can say that a parameter is callable using function:
 
-    def example9(callback: function):
+    def example10(callback: function):
         ...
         
 If you want, you can describe the parameters that the function should take:
 
-    def example10(callback: function(int,str)):
+    def example11(callback: function(int,str)):
         ...
         
 However, all the functions passed to example8 must now be properly annotated with a matching annotation.
 
 The special type any can be used if you do not want to check the type:
 
-    def example11(callback: function(int,any,number)):
+    def example12(callback: function(int,any,number)):
         ...
         
 You can also specify that a function should support further arguments using ellipsis:
 
-    def example12(callback: function(int,any,...)):
+    def example13(callback: function(int,any,...)):
         ...
         
 This will ensure that all callbacks have at least two parameters, the first being an int.
