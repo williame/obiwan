@@ -1,8 +1,14 @@
+import weakref
 import inspect
 import gc
 import types
 import opcode
 import decimal
+import atexit
+import sys
+import collections
+
+_enabled = False
 
 
 class ObiwanError(Exception):
@@ -61,8 +67,10 @@ class function(ObiwanCheck):
     def __init__(self, *args):
         self.ellipsis = args.count(Ellipsis)
         if self.ellipsis:
-            assert self.ellipsis == 1, "Ellipsis can only occur at end of function types"
-            assert args[-1] == Ellipsis, "Ellipsis can only occur at end of function types"
+            if self.ellipsis != 1:
+                raise ObiwanError("bad template: %s ellipsis can only occur at end of function types" % args)
+            if args[-1] != Ellipsis:
+                raise ObiwanError("bad template: %s ellipsis can only occur at end of function types" % args)
             self.args = args[:-1]
         else:
             self.args = args
@@ -151,15 +159,52 @@ class subtype:
 
 
 def sametype(expect, got, ctx):
-    "raises an ObiwanError if the type declarations a and b are incompatible"
+    "raises an ObiwanError if the type declarations are incompatible"
     if expect == got:
         return
     if isinstance(got, set) and expect in got:
         return
     raise ObiwanError("%s expects %s but got %s" % (ctx, expect, got))
+    
+    
+def _check_function_template(obj, template, ctx=""):
+    raise ObiwanError("checking function templates is not supported yet")
+    obj_ret = None
+    if inspect.isclass(obj): # classes are callable too
+        obj_ret = obj
+        obj = obj.__init__
+    if not inspect.isfunction(obj):
+        raise ObiwanException("%s %s is not a function" % (ctx, obj))
+    try:
+        expect = inspect.signature(template)
+    except TypeError:
+        raise ObiwanException("%s template %s is not a function" % (ctx, template))
+    except ValueError:
+        raise ObiwanException("%s cannot extract signature from template %s" % (ctx, template))
+    try:
+        got = inspect.signature(obj)
+    except (TypeError, ValueError):
+        raise ObiwanException("%s cannot extract signature from %s" % (ctx, obj))
+    expect_return = expect.return_annotation if expect.return_annotation is not inspect.Signature.empty else None
+    got_return = obj_ret or (got.return_annotation if got.return_annotation is not inspect.Signature.empty else None)
+    if bool(expect_return) != bool(got_return) and expect_return is not any:
+        raise ObiwanException("%s function %s does not return %s" % (ctx, got, expect_return))
+    ##### We need to check signatures not values
+    if expect_return and expect_return is not any:
+        duckable(got_return, expect_return, "%s return" % ctx)
+    expect_params = expect.parameters.values()
+    got_params = got.parameters.values()
+    if len(expect_params) != len(got_params):
+        raise ObiwanException("%s function %s mismatches %s" % (ctx, got, expect))
+    for i, (g, e) in enumerate(zip(got_params, expect_params)):
+        if e.annotation is inspect.Parameter.empty or e.annotation is any:
+            continue
+        if g.annotation is inspect.Parameter.empty:
+            raise ObiwanException("%s function %s parameter %s should be %s but is unannotated" % (ctx, got, i, e.annotation))
+        duckable(g.annotation, e.annotation, "%s function %s parameter %d" % (ctx, got, i))
+    
 
-
-def duckable(obj, template, ctx=""):
+def duckable(obj, template, ctx="checking"):
     try:
         if isinstance(template, str):  # allow docstrings
             return
@@ -176,15 +221,22 @@ def duckable(obj, template, ctx=""):
             function.check_is_function(obj, ctx)
         elif isinstance(template, ObiwanCheck):
             template.check(obj, ctx)
-        elif isinstance(template, set):  # leaf datatype multiple-choice
-            for typ in template:
-                try:
-                    duckable(obj, typ, ctx)
-                    break
-                except ObiwanError:
-                    pass
-            else:
-                raise ObiwanError("%s is %s but should be one of %s" % (ctx, type(obj), template))
+        elif isinstance(template, set):
+            if len(template) == 1: # we expect a set, all of a particular type
+                typ = tuple(template)[0]
+                if not isinstance(obj, set):
+                    raise ObiwanError("%s is %s but should be a set of %s" % (ctx, type(obj), typ))
+                for i, o in enumerate(obj):
+                    duckable(o, typ, ctx + ("[%d" % i))
+            else: # leaf datatype multiple-choice
+                for typ in template:
+                    try:
+                        duckable(obj, typ, ctx)
+                        break
+                    except ObiwanError:
+                        pass
+                else:
+                    raise ObiwanError("%s is %s but should be one of %s" % (ctx, type(obj), template))
         elif isinstance(template, dict):
             if not isinstance(obj, dict):
                 raise ObiwanError("%s is %s but should be a dict" % (ctx, type(obj)))
@@ -225,14 +277,15 @@ def duckable(obj, template, ctx=""):
                         duckable(k, key, "key %s[%s]" % (ctx, k))
                         duckable(v, value, "key %s[\"%s\"]" % (ctx, k))
         elif isinstance(template, list):
-            if not isinstance(obj, (tuple, list)):
-                raise ObiwanError("%s is %s but should be a list" % (ctx, type(obj)))
-            assert len(template) == 1, "lists must all be of the same type"
+            if not isinstance(obj, collections.abc.Sequence):
+                raise ObiwanError("%s is %s but should be %s" % (ctx, type(obj), template))
+            if len(template) != 1:
+                raise ObiwanError("%s bad template: %s lists must all be of the same type" % (ctx, template))
             template = template[0]
             for i, item in enumerate(obj):
                 duckable(item, template, "%s[%s]" % (ctx, i))
         elif isinstance(template, tuple):
-            if not isinstance(obj, (tuple, list)):
+            if not isinstance(obj, collections.abc.Sequence):
                 raise ObiwanError("%s is %s but should be packed %s" % (ctx, type(obj), template))
             for i, expect in enumerate(template):
                 if expect is any:
@@ -250,10 +303,12 @@ def duckable(obj, template, ctx=""):
         elif hasattr(template, "__name__") and template.__name__ == "<lambda>":
             if not template(obj):
                 raise ObiwanError("%s failed lambda check" % ctx)
+        elif inspect.isfunction(template): # lambdas are also functions, so check for lambda first
+            _check_function_template(obj, template)
         else:  # single type
             try:
                 if not isinstance(obj, template):
-                    raise ObiwanError("%s is %s but should be %s" % (ctx, type(obj), template))
+                    raise ObiwanError("%s is %s but should be %s" % (ctx, obj, template))
             except TypeError:
                 raise ObiwanError("%s template %s is not a valid type template" % (ctx, template))
     except ObiwanError:
@@ -261,12 +316,18 @@ def duckable(obj, template, ctx=""):
     except Exception as e:
         raise ObiwanError("%s internal error: %s" % (ctx, e))
 
-def is_duckable(obj, template, ctx=""):
+def is_duckable(*args):
     try:
-        duckable(obj, template, ctx)
+        duckable(*args)
         return True
     except ObiwanError:
         return False
+        
+        
+def check(*args):
+    global _enabled
+    if _enabled:
+        duckable(*args)
 
 import json as _json
 
@@ -305,12 +366,17 @@ class json:
         return cls._load(_json.loads, *args, **kwargs)
 
 
+_annotation_cache = weakref.WeakKeyDictionary()
+
+
 def _runtime_checker(frame, evt, arg):
+    global _enabled
+    if not _enabled:
+        return
     if evt == "call":
         # we cache those we've looked up
         # we use frame.f_code itself as key;
-        # TODO review if we need WeakReferences
-        if not frame.f_code in _runtime_checker.lookup:
+        if not frame.f_code in _annotation_cache:
             # we assume that first gc referrer is the function itself
             # this code seems very fragile and hackish;
             # TODO much nicer to use inspect.signature(frame) if that works in Python 3.3...
@@ -320,9 +386,9 @@ def _runtime_checker(frame, evt, arg):
                 frame_info = frame_info[0]
             else:
                 frame_info = None
-            _runtime_checker.lookup[frame.f_code] = frame_info
+            _annotation_cache[frame.f_code] = frame_info
         else:
-            frame_info = _runtime_checker.lookup[frame.f_code]
+            frame_info = _annotation_cache[frame.f_code]
         # frame_info is set to a function object with annoations?
         if frame_info:
             return_intercept = None
@@ -335,17 +401,17 @@ def _runtime_checker(frame, evt, arg):
             return return_intercept
     elif evt == "return":
         if (arg is not None) or (opcode.opname[frame.f_code.co_code[frame.f_lasti]] in ('RETURN_VALUE', 'YIELD_VALUE')):
-            frame_info = _runtime_checker.lookup[frame.f_code]
+            frame_info = _annotation_cache[frame.f_code]
             constraint = frame_info.__annotations__["return"]
             duckable(arg, constraint, "%s()->" % frame.f_code.co_name)
         # else we are in an exception! Super messy horrid hack code
         # http://stackoverflow.com/a/12800909/15721
 
-
 def install_obiwan_runtime_check():
-    if hasattr(_runtime_checker, "enabled") and _runtime_checker.enabled:
-        return
-    import sys
+    global _enabled
+    _enabled = True
     sys.settrace(_runtime_checker)
-    _runtime_checker.lookup = {}
-    _runtime_checker.enabled = True
+    def disable():
+        global _enabled
+        _enabled = False
+    atexit.register(disable)

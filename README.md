@@ -12,6 +12,10 @@ A function can look like:
     def example(a: int, b: float) -> number:
         return a/b
 
+Obiwan is also exemplary for describing and checking external data e.g. JSON and msgpack, and has a json parser that does this.
+
+Obiwan machinary can also be used for checking contracts, constraints and expectations in normal code rather as an assert.
+
 My ambition is that this Obiwan syntax is widely adopted and eventually Python static type checkers support it and IDEs can do auto-complete ala Typescript.
 
 To enable obiwan, you just call it:
@@ -20,7 +24,7 @@ To enable obiwan, you just call it:
     
 you are now running obiwan!  Runtime execution will be slower, but annotated functions will be checked for parameter correctness!
 
-All strings in your function annotations are ingored; you can place documentation in annotations without impacting obiwan.
+All strings in your function annotations are ignored; you can place documentation in annotations without impacting obiwan.
 
 # maturity
 
@@ -170,3 +174,6 @@ You can use lambdas as checkers; they should return a boolean condition e.g.
         
 You can provide your own complex custom constraint checkers by subclassing the ObiwanCheck class; look at obiwan.StringCheck for inspiration.
 
+# checking in function bodies
+
+Annotations on the function definitions are describing the contract of a function.  You can also check the functions

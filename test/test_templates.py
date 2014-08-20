@@ -106,3 +106,12 @@ class Tests(unittest.TestCase):
             {"a": 1, "b": None}, {str: int})
         self.assertRaises(obiwan.ObiwanError, obiwan.duckable,
             {"a": 1, 2: 2}, {str: int})
+        
+        
+    def test_disabling(self):
+        self.assertTrue(obiwan._enabled)
+        obiwan._enabled = False
+        obiwan.check({}, {"k":str}) # would fail if obiwan were enabled
+        obiwan._enabled = True
+        self.assertRaises(obiwan.ObiwanError, obiwan.check,
+            {}, {"k":str})        
