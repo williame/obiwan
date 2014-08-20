@@ -8,5 +8,13 @@ setup(name="obiwan",
     author_email="willvarfar@gmail.com",
     url="https://github.com/williame/obiwan",
     long_description=os.popen("pandoc -t rst README.md").read(),
+    classifiers=(
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Natural Language :: English",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: 3.4",
+    ),
     packages=["obiwan"])
 
