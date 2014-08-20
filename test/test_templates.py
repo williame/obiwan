@@ -107,6 +107,15 @@ class Tests(unittest.TestCase):
         self.assertRaises(obiwan.ObiwanError, obiwan.duckable,
             {"a": 1, 2: 2}, {str: int})
         
+       
+    def test_set_of_type(self):
+        obiwan.duckable(set(), {str})
+        obiwan.duckable({"a", "b"}, {str})
+        self.assertRaises(obiwan.ObiwanError, obiwan.duckable,
+            {1, 2}, {str})
+        self.assertRaises(obiwan.ObiwanError, obiwan.duckable,
+            {"a", "b", ("a",)}, {str})
+        
         
     def test_disabling(self):
         self.assertTrue(obiwan._enabled)

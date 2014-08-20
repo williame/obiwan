@@ -22,6 +22,8 @@ To enable obiwan, you just call it:
 
     from obiwan import *; install_obiwan_runtime_check()
     
+(Obiwan attaches to the Python VM using `settrace()`.  You need to call the installer in each thread you want checked)
+    
 you are now running obiwan!  Runtime execution will be slower, but annotated functions will be checked for parameter correctness!
 
 All strings in your function annotations are ignored; you can place documentation in annotations without impacting obiwan.
@@ -36,34 +38,39 @@ The integration with Python 3 function annotations is new and the `function` and
 
 You can also describe dictionary parameters and what their expected attributes are:
 
-    def example2(obj: {"a":int, "b": float}) -> {"ret": number}:
+    def example(obj: {"a":int, "b": float}) -> {"ret": number}:
         return {"ret": a/b}
         
 Checking can support the checking of *optional* and *noneable* attributes:
 
-    def example3(obj: {"a":int, optional("b"): float}):
+    def example(obj: {"a":int, optional("b"): float}):
         ...
         
 Checks can contain dictionary and other attributes too:
 
-    def example4(person: {"name":str, "phone": {"type":str, "number":str}}):
+    def example(person: {"name":str, "phone": {"type":str, "number":str}}):
         ...
         
 Dictionaries can be checked for key and value *types*, as well as by key name.  E.g. to ensure that a function returns only dictionaries mapping strings to integers:
 
-    def example5() -> {str: int}:
+    def example() -> {str: int}:
         ...
         
 You can specify alternative constraint types using sets:
 
-    def example6(x: {int,float}):
+    def example(x: {int,float}):
         ...
         
 In fact, *number* type is just a set of int and float.  And *noneable* is just a way of saying `{...,None}`
 
 Lists mean that the attribute must be an array where each element matches the constraint e.g.:
 
-    def example7(numbers: [int]):
+    def example(numbers: [int]):
+        ...
+        
+And sets which must be all of one type can be specified with a set containing a single element:
+
+    def example(x: {str}):
         ...
         
 Tuples must map to lists or tuples (no destructive iterators!) with the appropriate types in each slot:
@@ -114,7 +121,7 @@ Utility functions to load and dump JSON are provided.  These support a new *temp
 
 In Python 3 everything is an object, even `int` and `None`.  So you can't generically say that an argument or attribute must be an *object*.  You have to say what its attributes should be.  This follows the same style as validating dictionaries, but uses the *duck* type and keyword arguments to define:
 
-    def example8(a: duck(name=str,get_name=function)):
+    def example(a: duck(name=str,get_name=function)):
         ...
         
 This means that `a` must be something with a name attribute of type string, and a function attribute called get_name.
@@ -125,7 +132,7 @@ You can of course use classes to:
        def get_name(self):
           ...
 
-    def example9(person: Person):
+    def example(person: Person):
         ...
         
 *duck* instances can *extend* other duck instances using positional parameters:
@@ -139,24 +146,24 @@ You can of course use classes to:
         
 You can say that a parameter is callable using function:
 
-    def example10(callback: function):
+    def example(callback: function):
         ...
         
 If you want, you can describe the parameters that the function should take:
 
-    def example11(callback: function(int,str)):
+    def example(callback: function(int,str)):
         ...
         
 However, all the functions passed to example8 must now be properly annotated with a matching annotation.
 
 The special type any can be used if you do not want to check the type:
 
-    def example12(callback: function(int,any,number)):
+    def example(callback: function(int,any,number)):
         ...
         
 You can also specify that a function should support further arguments using ellipsis:
 
-    def example13(callback: function(int,any,...)):
+    def example(callback: function(int,any,...)):
         ...
         
 This will ensure that all callbacks have at least two parameters, the first being an int.
@@ -173,7 +180,3 @@ You can use lambdas as checkers; they should return a boolean condition e.g.
 # writing your own custom checkers
         
 You can provide your own complex custom constraint checkers by subclassing the ObiwanCheck class; look at obiwan.StringCheck for inspiration.
-
-# checking in function bodies
-
-Annotations on the function definitions are describing the contract of a function.  You can also check the functions

@@ -2,7 +2,7 @@ import os
 from setuptools import setup
 
 setup(name="obiwan",
-    version="1.0.6",
+    version="1.0.7",
     description="A runtime type checker (contract system) and JSON validator",
     author="William Edwards",
     author_email="willvarfar@gmail.com",

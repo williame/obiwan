@@ -227,7 +227,7 @@ def duckable(obj, template, ctx="checking"):
                 if not isinstance(obj, set):
                     raise ObiwanError("%s is %s but should be a set of %s" % (ctx, type(obj), typ))
                 for i, o in enumerate(obj):
-                    duckable(o, typ, ctx + ("[%d" % i))
+                    duckable(o, typ, ctx + ("[%d]" % i))
             else: # leaf datatype multiple-choice
                 for typ in template:
                     try:
