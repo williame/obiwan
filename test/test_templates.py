@@ -1,7 +1,6 @@
 import obiwan
 import unittest
 
-
 class Tests(unittest.TestCase):
 
     def test_dict(self):
@@ -115,12 +114,17 @@ class Tests(unittest.TestCase):
             {1, 2}, {str})
         self.assertRaises(obiwan.ObiwanError, obiwan.duckable,
             {"a", "b", ("a",)}, {str})
-        
-        
+
+
+    def test_noneable(self):
+        obiwan.duckable(None, obiwan.noneable(str))
+        obiwan.duckable(None, {str, None}) # using None instead of NoneType
+
+
     def test_disabling(self):
         self.assertTrue(obiwan._enabled)
         obiwan._enabled = False
         obiwan.check({}, {"k":str}) # would fail if obiwan were enabled
         obiwan._enabled = True
         self.assertRaises(obiwan.ObiwanError, obiwan.check,
-            {}, {"k":str})        
+            {}, {"k":str})

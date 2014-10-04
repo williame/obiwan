@@ -236,7 +236,8 @@ def duckable(obj, template, ctx="checking"):
                     except ObiwanError:
                         pass
                 else:
-                    raise ObiwanError("%s is %s but should be one of %s" % (ctx, type(obj), template))
+                    if not (obj is None and None in template):
+                        raise ObiwanError("%s is %s but should be one of %s" % (ctx, type(obj), template))
         elif isinstance(template, dict):
             if not isinstance(obj, dict):
                 raise ObiwanError("%s is %s but should be a dict" % (ctx, type(obj)))
