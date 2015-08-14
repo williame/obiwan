@@ -6,7 +6,7 @@ import opcode
 import decimal
 import atexit
 import sys
-import collections
+import collections.abc
 
 _enabled = False
 
